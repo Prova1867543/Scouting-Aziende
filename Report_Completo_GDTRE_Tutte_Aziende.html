@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GDTRE - Report Completo Aziende Target</title>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {
+            .print\:hidden { display: none !important; }
+            .print\:p-0 { padding: 0 !important; }
+            .print\:shadow-none { box-shadow: none !important; }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+        
+        // Lucide React icons as components
+        const ChevronLeft = ({ size = 24, ...props }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        );
+        
+        const ChevronRight = ({ size = 24, ...props }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <polyline points="9 18 15 12 9 6"></polyline>
+            </svg>
+        );
+        
+        const Printer = ({ size = 24, ...props }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <polyline points="6 9 6 2 18 2 18 9"></polyline>
+                <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                <rect x="6" y="14" width="12" height="8"></rect>
+            </svg>
+        );
+        
+        const Home = ({ size = 24, ...props }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+        );
+        
+        const Trash2 = ({ size = 24, ...props }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+        );
+        
+        const RotateCcw = ({ size = 24, ...props }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
+        );
+        
+        const Filter = ({ size = 24, ...props }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+            </svg>
+        );
+        
+        
+function ReportCompletoGDTRE() {
+  // Mappa province -> regioni
+  const provinceToRegion = {
+    // Emilia-Romagna
+    "Bologna": "Emilia-Romagna",
+    "Modena": "Emilia-Romagna",
+    "Reggio Emilia": "Emilia-Romagna",
+    "Reggio nell'Emilia": "Emilia-Romagna",
+    "Parma": "Emilia-Romagna",
+    "Piacenza": "Emilia-Romagna",
+    "Ferrara": "Emilia-Romagna",
+    "Ravenna": "Emilia-Romagna",
+    "Forlì-Cesena": "Emilia-Romagna",
+    "Rimini": "Emilia-Romagna",
+    
+    // Lombardia
+    "Milano": "Lombardia",
+    "Bergamo": "Lombardia",
+    "Brescia": "Lombardia",
+    "Como": "Lombardia",
+    "Cremona": "Lombardia",
+    "Lecco": "Lombardia",
+    "Lodi": "Lombardia",
+    "Mantova": "Lombardia",
+    "Monza e della Brianza": "Lombardia",
+    "Pavia": "Lombardia",
+    "Sondrio": "Lombardia",
+    "Varese": "Lombardia",
+    
+    // Veneto
+    "Venezia": "Veneto",
+    "Verona": "Veneto",
+    "Vicenza": "Veneto",
+    "Treviso": "Veneto",
+    "Padova": "Veneto",
+    "Rovigo": "Veneto",
+    "Belluno": "Veneto",
+    
+    // Piemonte
+    "Torino": "Piemonte",
+    "Alessandria": "Piemonte",
+    "Asti": "Piemonte",
+    "Biella": "Piemonte",
+    "Cuneo": "Piemonte",
+    "Novara": "Piemonte",
+    "Verbano-Cusio-Ossola": "Piemonte",
+    "Vercelli": "Piemonte",
+    
+    // Friuli-Venezia Giulia
+    "Udine": "Friuli-Venezia Giulia",
+    "Trieste": "Friuli-Venezia Giulia",
+    "Pordenone": "Friuli-Venezia Giulia",
+    "Gorizia": "Friuli-Venezia Giulia",
+    
+    // Liguria
+    "Genova": "Liguria",
+    "Imperia": "Liguria",
+    "Savona": "Liguria",
+    "La Spezia": "Liguria",
+    
+    // Trentino-Alto Adige
+    "Trento": "Trentino-Alto Adige",
+    "Bolzano": "Trentino-Alto Adige",
+    "Bolzano/Bozen": "Trentino-Alto Adige",
+    
+    // Toscana
+    "Firenze": "Toscana",
+    "Pisa": "Toscana",
+    "Siena": "Toscana",
+    "Arezzo": "Toscana",
+    "Grosseto": "Toscana",
+    "Livorno": "Toscana",
+    "Lucca": "Toscana",
+    "Massa-Carrara": "Toscana",
+    "Pistoia": "Toscana",
+    "Prato": "Toscana",
+    
+    // Marche
+    "Ancona": "Marche",
+    "Ascoli Piceno": "Marche",
+    "Fermo": "Marche",
+    "Macerata": "Marche",
+    "Pesaro e Urbino": "Marche",
+    
+    // Lazio
+    "Roma": "Lazio",
+    "Frosinone": "Lazio",
+    "Latina": "Lazio",
+    "Rieti": "Lazio",
+    "Viterbo": "Lazio",
+    
+    // Abruzzo
+    "L'Aquila": "Abruzzo",
+    "Teramo": "Abruzzo",
+    "Pescara": "Abruzzo",
+    "Chieti": "Abruzzo",
+    
+    // Campania
+    "Napoli": "Campania",
+    "Avellino": "Campania",
+    "Benevento": "Campania",
+    "Caserta": "Campania",
+    "Salerno": "Campania",
+    
+    // Sicilia
+    "Palermo": "Sicilia",
+    "Catania": "Sicilia",
+    "Messina": "Sicilia",
+    "Siracusa": "Sicilia",
+    "Ragusa": "Sicilia",
+    "Trapani": "Sicilia",
+    "Agrigento": "Sicilia",
+    "Caltanissetta": "Sicilia",
+    "Enna": "Sicilia",
+    
+    // Calabria
+    "Catanzaro": "Calabria",
+    "Cosenza": "Calabria",
+    "Crotone": "Calabria",
+    "Reggio Calabria": "Calabria",
+    "Vibo Valentia": "Calabria",
+    
+    // Puglia
+    "Bari": "Puglia",
+    "Barletta-Andria-Trani": "Puglia",
+    "Brindisi": "Puglia",
+    "Foggia": "Puglia",
+    "Lecce": "Puglia",
+    "Taranto": "Puglia",
+    
+    // Basilicata
+    "Potenza": "Basilicata",
+    "Matera": "Basilicata",
+    
+    // Molise
+    "Campobasso": "Molise",
+    "Isernia": "Molise",
+    
+    // Sardegna
+    "Cagliari": "Sardegna",
+    "Nuoro": "Sardegna",
+    "Oristano": "Sardegna",
+    "Sassari": "Sardegna",
+    "Sud Sardegna": "Sardegna"
+  };
+
+  // Tutte le aziende combinate dai 5 file
+  const allCompaniesData = [
+    // Da Report_PowerPoint_139_Aziende_GDTRE.tsx
+    { name: "SPECTRUM MEDICAL SRL", provincia: "Modena", ricavi: "€28.05M", ebitda: "16.01%", cagr: "75.16%", website: "www.spectrummedical.it", settore: "Farmaceutico - Dispositivi Medici", description: "Produzione di dispositivi medici monouso per cardiochirurgia e circolazione extracorporea. 170 dipendenti con sei camere bianche certificate. Leader nel bypass cardiopolmonare con presenza internazionale." },
+    { name: "DOPPIO MALTO S.P.A.", provincia: "Milano", ricavi: "€28.02M", ebitda: "15.13%", cagr: "25.42%", website: "www.doppiomalto.com", settore: "Retail Food", description: "Catena di 60+ ristoranti-birrerie in Europa. Birrificio da 5M litri/anno in Sardegna. Gestione food & beverage stadi San Siro e Cagliari. Concept scalabile che unisce ristorazione e produzione birra artigianale." },
+    { name: "CAFFE' PASCUCCI TORREFAZIONE S.P.A.", provincia: "Pesaro e Urbino", ricavi: "€28.00M", ebitda: "12.37%", cagr: "13.59%", website: "www.caffepascucci.it", settore: "Alimentare - Caffè", description: "Torrefazione dal 1883 con oltre 5000 test di assaggio annui. Produzione e commercializzazione caffè premium. Focus su qualità e selezione materie prime. Presenza internazionale con distribuzione capillare." },
+    { name: "CHIERESE PAK S.R.L.", provincia: "Torino", ricavi: "€27.98M", ebitda: "13.14%", cagr: "8.17%", website: "www.chieserepak.it", settore: "Packaging", description: "Packaging cartotecnico da 70+ anni specializzato nel settore alimentare. Parte del Gruppo Autajon leader europeo. Soluzioni sostenibili e innovative per imballaggio primario e secondario." },
+    { name: "GOCCIA DI CARNIA S.R.L.", provincia: "Udine", ricavi: "€27.93M", ebitda: "34.31%", cagr: "12.66%", website: "www.gocciadicarnia.it", settore: "Bevande Naturali", description: "Acqua minerale oligominerale da fonte a 1370m nelle Alpi Carniche. Microbiologicamente pura con caratteristiche organolettiche uniche. Marginalità eccellente del 34% nel segmento premium." },
+    { name: "TEMIX S.R.L.", provincia: "Cuneo", ricavi: "€27.77M", ebitda: "13.59%", cagr: "45.74%", website: "www.temixsrl.it", settore: "Macchine Industriali", description: "Macchine e impianti per industria manifatturiera. Soluzioni customizzate per automazione e lavorazioni di precisione. Crescita del 46% annuo trainata da innovazione e internazionalizzazione. Competenze Industria 4.0." },
+    { name: "LAMIFLEX S.P.A.", provincia: "Bergamo", ricavi: "€27.57M", ebitda: "22.07%", cagr: "8.92%", website: "www.lamiflex.it", settore: "Packaging", description: "Imballaggi flessibili ad alto valore per alimentare e farmaceutico. Tecnologie per film multistrato e packaging sostenibile. Forte R&D per materiali eco-compatibili e shelf-life estesa." },
+    { name: "R&D COLOR SRL", provincia: "Bergamo", ricavi: "€27.57M", ebitda: "15.79%", cagr: "53.76%", website: "www.redcolor.it", settore: "Ingredienti - Coloranti", description: "Coloranti e pigmenti per industria alimentare, cosmetica e farmaceutica. Crescita del 54% annuo. Focus su coloranti naturali per rispondere a normative EU. Portfolio in evoluzione continua." },
+    { name: "COSMEI S.R.L.", provincia: "Cremona", ricavi: "€27.45M", ebitda: "28.76%", cagr: "77.41%", website: "www.cosmei.it", settore: "Macchine Industriali", description: "Macchine e sistemi per industria manifatturiera con crescita del 77% annuo. Automazione e precisione per clienti industriali. Leadership in nicchie con forte componente tecnologica." },
+    { name: "EKSO S.R.L.", provincia: "Ragusa", ricavi: "€27.45M", ebitda: "22.19%", cagr: "12.23%", website: "www.ekso.it", settore: "Packaging", description: "Packaging innovativo per industria alimentare. Soluzioni sostenibili per imballaggi primari e secondari. Attenzione all'economia circolare con investimenti in materiali biodegradabili." },
+    { name: "PETRA S.R.L.", provincia: "Padova", ricavi: "€27.31M", ebitda: "28.12%", cagr: "8.89%", website: "www.farinapetra.it", settore: "Alimentare", description: "Farine speciali macinate a pietra e ingredienti per panificazione. Eccellenza su farine biologiche e integrali. Fornisce canale HoReCa e industria. Posizionamento premium con marginalità 28%." },
+    { name: "TOREX S.P.A.", provincia: "Modena", ricavi: "€27.29M", ebitda: "14.22%", cagr: "8.09%", website: "www.torex.it", settore: "Macchine Industriali", description: "Macchine per industria metalmeccanica. Lavorazioni meccaniche di precisione e automazione. Presenza consolidata Italia/Europa con clientela qualificata. Competenze in progettazione ed engineering." },
+    { name: "REDAX S.P.A.", provincia: "Mantova", ricavi: "€27.19M", ebitda: "35.03%", cagr: "15.64%", website: "www.redax.it", settore: "Packaging", description: "Leader in packaging innovativo con marginalità 35%. Tecnologie proprietarie per imballaggi intelligenti e sostenibili. R&D per packaging attivo. Brevetti proprietari." },
+    { name: "PRISMA SRL", provincia: "Treviso", ricavi: "€27.14M", ebitda: "28.04%", cagr: "12.35%", website: "www.prismaitalia.com", settore: "Packaging", description: "Packaging flessibile e rigido per diversi settori. Alta customizzazione dalla progettazione alla produzione. Tecnologie 4.0. Clientela food, pharma e consumer goods." },
+    { name: "STUCCHI SERVIZI ECOLOGICI SRL", provincia: "Milano", ricavi: "€27.10M", ebitda: "41.46%", cagr: "19.27%", website: "www.stucchi-sse.it", settore: "Servizi Ambientali", description: "Servizi ambientali con marginalità eccezionale 41%. Gestione rifiuti, bonifiche e igiene urbana. Modello ad alta efficienza con contratti pluriennali. Leadership locale con barriere all'entrata." },
+    { name: "FILATURA DI TRIVERO S.P.A.", provincia: "Biella", ricavi: "€27.07M", ebitda: "12.16%", cagr: "25.25%", website: "www.filaturaditrivero.it", settore: "Tessile Lusso", description: "Filatura per tessile luxury. Filati pregiati per moda premium. Tradizione biellese con tecnologie moderne. Clientela internazionale luxury fashion. Focus su sostenibilità e tracciabilità." },
+    { name: "SACMA S.P.A.", provincia: "Biella", ricavi: "€27.06M", ebitda: "13.27%", cagr: "20.24%", website: "www.sacmaspa.com", settore: "Tessile", description: "Tessuti e filati per industria di alta gamma. Eccellenza tradizione biellese con innovazione. Fornisce brand internazionali fashion. Investimenti in sostenibilità e certificazioni ambientali." },
+    { name: "SENSIENT FOOD COLORS ITALY S.R.L.", provincia: "Reggio Emilia", ricavi: "€26.99M", ebitda: "14.82%", cagr: "17.97%", website: "www.sensient-fce.com", settore: "Ingredienti - Coloranti", description: "Filiale Sensient, leader mondiale coloranti alimentari. Coloranti naturali e sintetici per food & beverage. Portfolio conforme normative EU. R&D per nuovi coloranti naturali." },
+    { name: "PANINO GIUSTO S.P.A.", provincia: "Milano", ricavi: "€27.00M", ebitda: "24.50%", cagr: "26.17%", website: "www.paninogiusto.it", settore: "Retail Food", description: "Catena paninoteche gourmet dal 1979 con 30+ punti vendita. Concept che ha elevato il panino a premium. Ingredienti selezionati. Prima ristorazione italiana B-Corp. Franchising internazionale." },
+    { name: "VLG SRL", provincia: "Roma", ricavi: "€26.98M", ebitda: "21.15%", cagr: "132.55%", website: "www.autovillagemonterotondo.it", settore: "Automotive Retail", description: "Concessionaria con crescita 133% annuo. Vendita e assistenza veicoli premium. Modello multi-brand con post-vendita integrato. Espansione via acquisizioni. Digitalizzazione vendite." },
+    { name: "METEX S.R.L.", provincia: "Padova", ricavi: "€26.98M", ebitda: "17.80%", cagr: "12.00%", website: "www.metex.it", settore: "Macchine Industriali", description: "Macchine per lavorazioni metalliche. Soluzioni per taglio, piegatura lamiera. CNC e automazione. Clientela automotive, aerospazio. Export Europa." },
+    { name: "B.M.C. S.R.L.", provincia: "Bologna", ricavi: "€26.93M", ebitda: "30.12%", cagr: "19.65%", website: "www.bmcairfilters.com", settore: "Componenti Auto Performance", description: "Leader mondiale filtri aria sportivi. Tecnologia cotone oliato lavabile. Brand recognition motorsport. 70+ paesi. Marginalità 30%." },
+    { name: "STEELFORM S.R.L.", provincia: "Udine", ricavi: "€26.91M", ebitda: "12.72%", cagr: "11.97%", website: "www.steelform.net", settore: "Componenti Metallici", description: "Componenti metallici di precisione per industria meccanica. Lavorazioni acciaio e leghe speciali. Clientela qualificata nei settori automotive e industrial." },
+    { name: "IGEA S.P.A.", provincia: "Modena", ricavi: "€26.86M", ebitda: "24.25%", cagr: "22.20%", website: "www.igeamedical.com", settore: "Dispositivi Medici", description: "Dispositivi medici e strumentazione per diagnostica e terapia. Focus su tecnologie innovative per il settore healthcare. Crescita trainata da innovazione prodotto." },
+    { name: "VOLTECO S.P.A.", provincia: "Treviso", ricavi: "€26.82M", ebitda: "21.78%", cagr: "8.24%", website: "www.volteco.it", settore: "Materiali Edili", description: "Materiali innovativi per edilizia e impermeabilizzazione. Soluzioni tecniche per costruzioni e ristrutturazioni. Portfolio prodotti per diversi segmenti edilizi." },
+    { name: "R.B. VIDEO GAMES S.R.L.", provincia: "Ravenna", ricavi: "€26.79M", ebitda: "21.77%", cagr: "24.74%", website: "www.bdmgiochi.it", settore: "Gaming/Intrattenimento", description: "Gaming e intrattenimento con sale giochi e distribuzione. Crescita trainata dall'espansione della rete e dall'innovazione nell'offerta entertainment." },
+    { name: "ALMAS S.R.L.", provincia: "Vicenza", ricavi: "€26.71M", ebitda: "12.09%", cagr: "40.19%", website: "www.almasitalia.it", settore: "Macchine Industriali", description: "Macchine utensili e sistemi di produzione automatizzati. Crescita eccezionale del 40% annuo. Soluzioni per lavorazioni meccaniche avanzate." },
+    { name: "GENERAL IMPIANTI S.R.L.", provincia: "Ancona", ricavi: "€26.68M", ebitda: "21.14%", cagr: "12.66%", website: "www.loccioni.com", settore: "Automazione Industriale", description: "Sistemi di automazione e controllo qualità per industria. Soluzioni integrate per ottimizzazione processi produttivi. Tecnologie avanzate per Industry 4.0." },
+    { name: "P.B.L. SRL", provincia: "Parma", ricavi: "€26.61M", ebitda: "13.95%", cagr: "43.77%", website: "www.pbl.it", settore: "Packaging", description: "Soluzioni di packaging innovative per settore alimentare. Crescita straordinaria del 44% annuo. Focus su sostenibilità e design innovativo degli imballaggi." },
+    { name: "MAIN S.P.A.", provincia: "Verona", ricavi: "€26.64M", ebitda: "20.85%", cagr: "8.70%", website: "www.mainspa.com", settore: "Macchine Industriali", description: "Macchine per lavorazione e trasformazione industriale. Soluzioni integrate per diversi settori manifatturieri. Presenza consolidata nel mercato italiano." },
+    { name: "CORRADI E GHISOLFI S.R.L.", provincia: "Cuneo", ricavi: "€26.54M", ebitda: "19.42%", cagr: "13.28%", website: "www.corradieghisolfi.it", settore: "Macchine Industriali", description: "Produzione di macchine industriali specializzate. Competenze tecniche avanzate per soluzioni su misura. Clientela industriale qualificata." },
+    { name: "LE VIE DEL TARTUFO SRL", provincia: "Cuneo", ricavi: "€26.48M", ebitda: "22.35%", cagr: "18.94%", website: "www.leviedeltartufo.it", settore: "Alimentare - Prodotti Gourmet", description: "Prodotti alimentari gourmet a base di tartufo. Eccellenza italiana nel segmento premium. Distribuzione nazionale e internazionale. Focus su qualità e autenticità." },
+    { name: "OMT GROUP S.P.A.", provincia: "Brescia", ricavi: "€26.45M", ebitda: "18.67%", cagr: "11.52%", website: "www.omtgroup.it", settore: "Macchine Industriali", description: "Macchine e attrezzature per industria. Soluzioni per diversi settori manifatturieri. Presenza sul mercato italiano ed europeo." },
+    { name: "TECNOSTRUTTURE S.R.L.", provincia: "Treviso", ricavi: "€26.42M", ebitda: "16.89%", cagr: "14.73%", website: "www.tecnostrutture.it", settore: "Componenti Industriali", description: "Componenti e strutture per applicazioni industriali. Lavorazioni meccaniche di precisione. Soluzioni tecniche customizzate per clienti industriali." },
+    { name: "POLYKEG S.R.L.", provincia: "Milano", ricavi: "€26.39M", ebitda: "24.58%", cagr: "29.84%", website: "www.polykeg.com", settore: "Packaging Bevande", description: "Innovativo sistema di kegs monouso per birra e bevande. Soluzione rivoluzionaria che sostituisce i fusti metallici tradizionali. Crescita rapida nel settore beverage." },
+    { name: "ABC GROUP S.R.L.", provincia: "Bologna", ricavi: "€26.35M", ebitda: "19.73%", cagr: "16.42%", website: "www.abc-group.it", settore: "Macchine Industriali", description: "Produzione di macchine industriali specializzate. Focus su qualità e innovazione tecnologica. Clientela diversificata in vari settori industriali." },
+    { name: "NEULIFT S.P.A.", provincia: "Treviso", ricavi: "€26.31M", ebitda: "17.94%", cagr: "12.88%", website: "www.neulift.com", settore: "Movimento Terra - Componenti", description: "Componenti per macchine movimento terra. Specializzazione in parti di ricambio e accessori per settore construction. Distribuzione capillare." },
+    { name: "STARMATIK S.R.L.", provincia: "Brescia", ricavi: "€26.27M", ebitda: "21.46%", cagr: "18.75%", website: "www.starmatik.com", settore: "Automazione Industriale", description: "Sistemi di automazione industriale avanzati. Soluzioni per ottimizzazione processi produttivi. Tecnologie per Industria 4.0 e IoT industriale." },
+    { name: "OMAG S.P.A.", provincia: "Modena", ricavi: "€26.24M", ebitda: "16.32%", cagr: "13.94%", website: "www.omag.it", settore: "Macchine Industriali", description: "Macchine per lavorazioni industriali. Tecnologie per diversi settori manifatturieri. Export significativo verso mercati internazionali." },
+    { name: "CARBOPRESS S.P.A.", provincia: "Brescia", ricavi: "€26.21M", ebitda: "23.87%", cagr: "15.63%", website: "www.carbopress.it", settore: "Componenti Industriali", description: "Componenti meccanici di precisione per industria. Lavorazioni speciali e trattamenti superficiali. Clientela nel settore automotive e industrial." },
+    { name: "ALFATEST S.R.L.", provincia: "Milano", ricavi: "€26.18M", ebitda: "20.94%", cagr: "14.26%", website: "www.alfatest.it", settore: "Strumentazione Industriale", description: "Strumentazione e apparecchiature per test e misurazioni industriali. Soluzioni per controllo qualità e laboratori. Distribuzione di brand internazionali." },
+    { name: "SAROM S.P.A.", provincia: "Verona", ricavi: "€26.15M", ebitda: "18.42%", cagr: "11.89%", website: "www.sarom.it", settore: "Macchine Industriali", description: "Macchine per industria manifatturiera. Tecnologie per lavorazioni meccaniche. Presenza consolidata nel Nord Italia con clientela qualificata." },
+    { name: "HO.BAG CORPORATE S.R.L.", provincia: "Milano", ricavi: "€26.12M", ebitda: "25.73%", cagr: "19.48%", website: "www.hobag.it", settore: "Packaging", description: "Soluzioni di packaging innovative. Focus su sostenibilità e design. Clientela nei settori fashion, cosmetics e food. Marginalità eccellente." },
+    { name: "ENERBLUE S.R.L.", provincia: "Milano", ricavi: "€26.09M", ebitda: "19.85%", cagr: "13.72%", website: "www.enerblue.it", settore: "Tecnologia", description: "Soluzioni tecnologiche per efficienza energetica e sostenibilità. Sistemi innovativi per gestione energia. Crescita trainata dalla transizione energetica." },
+    { name: "FIREX S.R.L.", provincia: "Treviso", ricavi: "€26.05M", ebitda: "17.63%", cagr: "12.54%", website: "www.firex.it", settore: "Macchine per Ristorazione", description: "Macchine professionali per ristorazione commerciale. Forni, cucine e attrezzature per settore HoReCa. Qualità made in Italy con distribuzione internazionale." },
+    { name: "ABACO S.P.A.", provincia: "Bologna", ricavi: "€26.01M", ebitda: "28.94%", cagr: "16.82%", website: "www.abaco.it", settore: "Software Industriale", description: "Software e soluzioni digitali per industria. Sistemi MES, ERP e gestione produzione. Marginalità eccellente del 29%. Leader nelle soluzioni Industry 4.0." },
+    { name: "FALKENSTEINER HOTELS SUEDTIROL S.R.L.", provincia: "Bolzano", ricavi: "€25.98M", ebitda: "22.37%", cagr: "14.26%", website: "www.falkensteiner.com", settore: "Hospitality", description: "Catena alberghiera premium in Alto Adige. Strutture di alta qualità con servizi wellness. Posizionamento luxury nel turismo alpino. Forte identità di brand." },
+    { name: "ZINCATURA BRESCIANA S.R.L.", provincia: "Brescia", ricavi: "€25.95M", ebitda: "19.48%", cagr: "11.73%", website: "www.zincaturabresciana.it", settore: "Trattamenti Metallici", description: "Trattamenti superficiali e zincatura a caldo per industria. Servizi per protezione dalla corrosione. Clientela nei settori construction e automotive." },
+    { name: "GEL-MATIC ITALIA S.R.L.", provincia: "Bologna", ricavi: "€25.92M", ebitda: "21.89%", cagr: "13.45%", website: "www.gel-matic.com", settore: "Macchine per Gelato", description: "Macchine professionali per produzione gelato artigianale. Leader nel settore con tecnologie innovative. Export verso mercati internazionali. Assistenza e formazione clienti." },
+    { name: "ARTE BIANCA S.P.A.", provincia: "Padova", ricavi: "€25.89M", ebitda: "16.74%", cagr: "12.38%", website: "www.artebianca.it", settore: "Alimentare - Panificazione", description: "Produzione industriale di prodotti da forno. Pane, focacce e specialità da forno. Distribuzione GDO e canale HoReCa. Focus su qualità e tradizione italiana." },
+    { name: "GAMBINO INDUSTRIE ALIMENTARI S.P.A.", provincia: "Catania", ricavi: "€25.86M", ebitda: "18.92%", cagr: "14.67%", website: "www.gambino.it", settore: "Alimentare", description: "Industria alimentare siciliana con focus su specialità regionali. Prodotti tipici e lavorazione materie prime locali. Forte identità territoriale e qualità." },
+    { name: "OLYMPIA S.R.L.", provincia: "Modena", ricavi: "€25.83M", ebitda: "24.58%", cagr: "16.94%", website: "www.olympia-group.it", settore: "Macchine per Packaging", description: "Macchine automatiche per packaging e confezionamento. Tecnologie per diversi settori industriali. Soluzioni complete chiavi in mano. Export significativo." },
+    { name: "MULTIVERSITY S.P.A.", provincia: "Milano", ricavi: "€25.80M", ebitda: "32.47%", cagr: "18.23%", website: "www.multiversity.com", settore: "Istruzione/EdTech", description: "Piattaforma di formazione online e servizi educativi. Corsi universitari e professionali in modalità e-learning. Marginalità eccezionale del 32%. Crescita rapida nel settore EdTech." },
+    { name: "MC 2010 S.R.L.", provincia: "Parma", ricavi: "€25.77M", ebitda: "19.86%", cagr: "13.58%", website: "www.mc2010.it", settore: "Macchine Industriali", description: "Macchine per lavorazioni industriali. Potenziale strategia buy & build nel settore. Clientela diversificata e tecnologie consolidate." },
+    { name: "AGRIFLEX S.R.L.", provincia: "Brescia", ricavi: "€25.74M", ebitda: "22.94%", cagr: "15.42%", website: "www.agriflex.it", settore: "Componenti Agricoli", description: "Componenti e ricambi per macchine agricole. Specializzazione in parti di precisione. Distribuzione nazionale e internazionale. Settore agricolo in crescita." },
+    { name: "ITALIMPIANTI ORAFI S.P.A.", provincia: "Vicenza", ricavi: "€25.71M", ebitda: "20.38%", cagr: "12.76%", website: "www.italimpiantiorafi.com", settore: "Macchine per Oreficeria", description: "Macchine e impianti per lavorazione metalli preziosi. Leader nel settore orafo e gioielleria. Tecnologie avanzate per fusione e lavorazione oro. Export mondiale." },
+    { name: "CARPENTERIA CORSI S.R.L.", provincia: "Reggio Emilia", ricavi: "€25.68M", ebitda: "17.92%", cagr: "11.84%", website: "www.carpenteriacorsi.it", settore: "Carpenteria Industriale", description: "Carpenteria pesante e media per industria. Lavorazioni metalliche complesse. Clientela nei settori meccanico e industrial. Capacità produttiva significativa." },
+    { name: "I.A.E. INDUSTRIA APPLICAZIONI ELETTRONICHE S.P.A.", provincia: "Milano", ricavi: "€25.65M", ebitda: "19.47%", cagr: "13.29%", website: "www.iae.it", settore: "Elettronica Industriale", description: "Sistemi elettronici per applicazioni industriali. Componentistica e schede elettroniche customizzate. Competenze in progettazione e produzione elettronica." },
+    { name: "MODENA GIOCHI S.R.L.", provincia: "Modena", ricavi: "€25.62M", ebitda: "23.85%", cagr: "17.94%", website: "www.modenagiochi.it", settore: "Gaming/Intrattenimento", description: "Gestione sale giochi e intrattenimento. Network di locali in Emilia-Romagna. Marginalità elevata e crescita sostenuta. Modello di business scalabile." },
+    { name: "FOODNESS S.P.A.", provincia: "Treviso", ricavi: "€25.59M", ebitda: "18.76%", cagr: "14.52%", website: "www.foodness.it", settore: "Alimentare - Bevande", description: "Produzione di bevande solubili e preparati alimentari. Caffè, cappuccino e bevande calde in formato monodose. Distribuzione GDO e vending. Innovazione prodotto." },
+    { name: "HHLA PLT ITALY S.R.L.", provincia: "Trieste", ricavi: "€25.56M", ebitda: "21.94%", cagr: "12.83%", website: "www.hhla.de", settore: "Logistica Portuale", description: "Servizi logistici portuali a Trieste. Parte del gruppo HHLA tedesco. Movimentazione container e logistica integrata. Posizione strategica nel Nord Adriatico." },
+    { name: "VETROASFALTO S.P.A.", provincia: "Roma", ricavi: "€25.53M", ebitda: "16.48%", cagr: "10.92%", website: "www.vetroasfalto.it", settore: "Materiali Stradali", description: "Materiali per segnaletica stradale e sicurezza. Vernici, microsfere di vetro e soluzioni per manutenzione strade. Presenza nazionale consolidata." },
+    { name: "ILPRA S.P.A.", provincia: "Pavia", ricavi: "€26.21M", ebitda: "16.35%", cagr: "10.33%", website: "www.ilpra.com", settore: "Macchine per Packaging", description: "Macchine confezionatrici e termoformatrici. Soluzioni complete per packaging alimentare e industriale. Export verso 100+ paesi. Innovazione continua." },
+    { name: "CUKI COFRESCO S.R.L.", provincia: "Milano", ricavi: "€26.18M", ebitda: "31.93%", cagr: "12.41%", website: "www.cuki.it", settore: "Packaging Consumer", description: "Prodotti in alluminio e pellicole per uso domestico. Brand Cuki leader nel mercato italiano. Marginalità eccezionale del 32%. Distribuzione GDO capillare." },
+    { name: "PROGEA S.R.L.", provincia: "Modena", ricavi: "€26.17M", ebitda: "28.93%", cagr: "13.96%", website: "www.progea.com", settore: "Software Industriale", description: "Software SCADA e HMI per automazione industriale. Soluzioni per supervisione e controllo processi. Leader italiano nel settore. Marginalità del 29%." },
+    { name: "TECNOSEAL SPA", provincia: "Milano", ricavi: "€26.15M", ebitda: "22.96%", cagr: "11.45%", website: "www.tecnoseal.it", settore: "Componenti Navali", description: "Anodi sacrificali e componenti per nautica. Leader mondiale nel settore marine. Protezione dalla corrosione per imbarcazioni. Export globale." },
+    { name: "CASEIFICIO VAL D'AVETO SOCIETA' AGRICOLA COOPERATIVA", provincia: "Genova", ricavi: "€26.11M", ebitda: "13.05%", cagr: "12.31%", website: "www.caseificiovalaveto.it", settore: "Latticini", description: "Produzione formaggi tipici liguri. Cooperativa agricola con focus su qualità e territorio. Presìdi Slow Food. Distribuzione nazionale specializzata." },
+    { name: "FARMIGEA S.P.A.", provincia: "Pisa", ricavi: "€26.02M", ebitda: "29.07%", cagr: "13.04%", website: "www.farmigea.it", settore: "Farmaceutico", description: "Azienda farmaceutica con produzione e commercializzazione farmaci. Marginalità eccellente del 29%. Focus su specialità terapeutiche. Distribuzione nazionale." },
+    { name: "SANMINA ITALY S.P.A.", provincia: "Milano", ricavi: "€26.00M", ebitda: "12.60%", cagr: "12.04%", website: "www.sanmina.com", settore: "Elettronica", description: "Manufacturing elettronico per multinazionali. Filiale italiana del gruppo Sanmina. Produzione schede e sistemi elettronici complessi. Clienti hi-tech." },
+    { name: "LA LINEA VERDE S.P.A. SOCIETA' BENEFIT", provincia: "Verona", ricavi: "€25.87M", ebitda: "17.65%", cagr: "12.02%", website: "www.lalineaverde.it", settore: "Alimentare - Vegetale", description: "Leader italiano verdure fresche e surgelate. Prodotti vegetali pronti. Società Benefit certificata. Forte attenzione a sostenibilità e innovazione. Distribuzione GDO." },
+    { name: "MEVIS S.P.A.", provincia: "Vicenza", ricavi: "€25.87M", ebitda: "31.09%", cagr: "10.89%", website: "www.mevis.it", settore: "Macchine Industriali", description: "Macchine per lavorazione plastica e gomma. Tecnologie per stampaggio. Marginalità eccezionale del 31%. Clientela internazionale nel settore materie plastiche." },
+    { name: "TECNICA GROUP S.P.A.", provincia: "Treviso", ricavi: "€25.79M", ebitda: "16.21%", cagr: "8.36%", website: "www.tecnicagroup.com", settore: "Calzature Sportive", description: "Produzione calzature tecniche per sport invernali e outdoor. Brand Tecnica, Nordica, Blizzard. Distribuzione globale. Leadership nel settore ski boots." },
+    { name: "OMET S.R.L.", provincia: "Lecco", ricavi: "€25.69M", ebitda: "16.48%", cagr: "9.28%", website: "www.omet.com", settore: "Macchine per Stampa", description: "Macchine da stampa flessografica per packaging. Tecnologie per etichette e imballaggi flessibili. Export mondiale. Innovazione continua nel printing." },
+    { name: "COLCOM GROUP S.P.A.", provincia: "Milano", ricavi: "€25.58M", ebitda: "29.61%", cagr: "12.47%", website: "www.colcom.it", settore: "Macchine Industriali", description: "Macchine e sistemi industriali. Marginalità del 30%. Soluzioni per diversi settori manifatturieri. Tecnologie avanzate e servizio completo." },
+    { name: "TECNOSKY S.R.L.", provincia: "Padova", ricavi: "€25.55M", ebitda: "21.84%", cagr: "13.62%", website: "www.tecnosky.it", settore: "Strumentazione Ottica", description: "Telescopi e strumentazione astronomica. Leader italiano nel settore. Prodotti per amatori e professionisti. Export globale con forte presenza online." },
+    { name: "ICOS S.R.L.", provincia: "Milano", ricavi: "€25.40M", ebitda: "22.67%", cagr: "12.35%", website: "www.icosnet.com", settore: "Software/IT", description: "Soluzioni software e servizi IT per aziende. Consulenza e sviluppo applicazioni. Clientela corporate e PMI. Marginalità elevata del 23%." },
+    { name: "PASTIFICIO FABIANELLI S.R.L.", provincia: "Rieti", ricavi: "€25.33M", ebitda: "18.82%", cagr: "12.44%", website: "www.fabianelli.it", settore: "Alimentare - Pasta", description: "Produzione pasta secca di qualità. Tradizione artigianale con processi moderni. Distribuzione nazionale GDO e canale tradizionale. Prodotti premium." },
+    { name: "COSMINT S.R.L.", provincia: "Modena", ricavi: "€25.25M", ebitda: "32.18%", cagr: "16.44%", website: "www.cosmint.it", settore: "Macchine Industriali", description: "Macchine per industria. Marginalità eccezionale del 32%. Tecnologie avanzate. Crescita sostenuta da innovazione e internazionalizzazione." },
+    { name: "TESI AUTOMAZIONI S.R.L.", provincia: "Modena", ricavi: "€25.23M", ebitda: "24.91%", cagr: "14.36%", website: "www.tesiautomazioni.it", settore: "Automazione Industriale", description: "Sistemi di automazione per industria ceramica e altri settori. Soluzioni complete per linee produttive. Competenze in robotica e handling." },
+    { name: "DELLAS S.P.A.", provincia: "Padova", ricavi: "€25.22M", ebitda: "19.37%", cagr: "10.68%", website: "www.dellas.it", settore: "Macchine per Packaging", description: "Macchine confezionatrici automatiche. Soluzioni per diversi settori industriali. Tecnologie per packaging primario e secondario. Export significativo." },
+    { name: "CANE' S.P.A.", provincia: "Verona", ricavi: "€25.18M", ebitda: "19.45%", cagr: "13.87%", website: "www.cane.it", settore: "Pet Economy - Accessori", description: "Produzione accessori per animali domestici. Guinzagli, collari e prodotti per la cura. Distribuzione pet shop e GDO. Brand riconosciuto nel settore pet." },
+    { name: "OFFICINE MECCANICHE SAN GIORGIO S.P.A.", provincia: "Milano", ricavi: "€27.69M", ebitda: "14.36%", cagr: "30.27%", website: "www.omsg.it", settore: "Macchine Industriali", description: "Macchine per industria manifatturiera. Lavorazioni meccaniche di precisione. Crescita del 30% annuo. Clientela industriale qualificata." },
+    { name: "CLENDY S.P.A.", provincia: "Milano", ricavi: "€25.14M", ebitda: "18.92%", cagr: "14.53%", website: "www.clendy.it", settore: "Software/IT", description: "Soluzioni software enterprise. Sviluppo applicazioni e consulenza IT. Clientela corporate italiana. Focus su digitalizzazione processi aziendali." },
+    { name: "ERREBIAN S.P.A.", provincia: "Treviso", ricavi: "€29.95M", ebitda: "16.89%", cagr: "9.84%", website: "www.errebian.it", settore: "Macchine Industriali", description: "Produzione macchine per industria. Tecnologie per lavorazioni meccaniche. Presenza consolidata nel mercato italiano ed europeo." },
+    { name: "FINRES S.R.L.", provincia: "Firenze", ricavi: "€29.54M", ebitda: "23.46%", cagr: "12.37%", website: "www.finres.it", settore: "Packaging", description: "Soluzioni di packaging innovative. Focus su sostenibilità e qualità. Clientela nei settori food e pharma. Marginalità elevata." },
+    { name: "LA.MI.DA S.R.L.", provincia: "Bologna", ricavi: "€29.32M", ebitda: "18.92%", cagr: "11.28%", website: "www.lamida.it", settore: "Macchine Industriali", description: "Macchine per lavorazioni industriali. Competenze in automazione e precisione. Clientela qualificata in diversi settori." },
+    { name: "ZANCHETTA S.P.A.", provincia: "Padova", ricavi: "€29.18M", ebitda: "20.15%", cagr: "13.94%", website: "www.zanchetta.it", settore: "Macchine Industriali", description: "Macchine per industria chimica e alimentare. Impianti per miscelazione e produzione. Export internazionale significativo." },
+    { name: "MECCANICA ERMINI S.R.L.", provincia: "Brescia", ricavi: "€29.07M", ebitda: "17.63%", cagr: "10.52%", website: "www.meccanicaermini.it", settore: "Componenti Meccanici", description: "Componenti meccanici di precisione. Lavorazioni per automotive e industrial. Qualità e affidabilità consolidate nel tempo." },
+    { name: "BONDUELLE ITALIA S.R.L.", provincia: "Cuneo", ricavi: "€28.95M", ebitda: "14.28%", cagr: "9.76%", website: "www.bonduelle.it", settore: "Alimentare - Vegetale", description: "Filiale italiana Bonduelle. Verdure fresche, surgelate e conservate. Leader nel segmento vegetale. Distribuzione GDO nazionale." },
+    { name: "MARKAS DEUTSCHLAND GMBH", provincia: "Bolzano", ricavi: "€28.87M", ebitda: "13.54%", cagr: "15.42%", website: "www.markas.com", settore: "Servizi", description: "Servizi integrati facility management. Pulizie, manutenzioni e gestione strutture. Clientela pubblica e privata. Crescita sostenuta." },
+    { name: "SACMI PACKAGING & CHOCOLATE S.P.A.", provincia: "Bologna", ricavi: "€28.76M", ebitda: "19.87%", cagr: "11.63%", website: "www.sacmi.com", settore: "Macchine per Packaging", description: "Macchine per packaging alimentare e cioccolato. Parte del Gruppo Sacmi. Tecnologie avanzate per confezionamento. Export mondiale." },
+    { name: "SNAP-ON EQUIPMENT ITALIA S.R.L.", provincia: "Milano", ricavi: "€28.64M", ebitda: "22.94%", cagr: "35.55%", website: "www.snaponequipment.eu", settore: "Macchine Industriali", description: "Attrezzature per automotive e officine. Brand Snap-On leader mondiale. Crescita del 36% annuo. Distribuzione capillare in Italia." },
+    { name: "MODENPLAST MEDICAL S.R.L.", provincia: "Modena", ricavi: "€28.52M", ebitda: "26.93%", cagr: "14.28%", website: "www.modenplast.it", settore: "Farmaceutico", description: "Dispositivi medici in plastica monouso. Prodotti per diagnostica e terapia. Marginalità del 27%. Certificazioni internazionali." },
+    { name: "IACOBUCCI HF AEROSPACE S.P.A.", provincia: "Teramo", ricavi: "€28.43M", ebitda: "18.76%", cagr: "34.74%", website: "www.iacobuccihf.com", settore: "Aerospaziale", description: "Sistemi per aviazione civile e commerciale. Galleys, water systems e interni aeromobili. Crescita eccezionale del 35% annuo. Clienti airlines globali." },
+    { name: "VETRORESINA ENGINEERING DEVELOPMENT S.R.L.", provincia: "Siracusa", ricavi: "€28.38M", ebitda: "15.42%", cagr: "12.89%", website: "www.ved.it", settore: "Componenti Industriali", description: "Componenti in vetroresina per industria. Lavorazioni materiali compositi. Applicazioni marine, automotive e industrial. Competenze tecniche avanzate." },
+    { name: "ARCO S.R.L.", provincia: "Padova", ricavi: "€28.25M", ebitda: "19.34%", cagr: "13.67%", website: "www.arco-spa.com", settore: "Macchine Industriali", description: "Macchine per industria alimentare. Tecnologie per lavorazione e confezionamento. Soluzioni complete chiavi in mano. Export significativo." },
+
+    // Da Report_PowerPoint_17_Aziende_Selezionate.tsx
+    { name: "PHARMA COS. S.R.L.", provincia: "Bergamo", ricavi: "€18.47M", ebitda: "13.37%", cagr: "130.23%", website: "pharmacos.it", settore: "Farmaceutico", description: "Azienda farmaceutica con produzione di farmaci e dispositivi medici. Crescita eccezionale del 130% annuo. Focus su innovazione prodotto e qualità farmaceutica. Forte presenza nel mercato italiano con prospettive di espansione internazionale." },
+    { name: "VALPHARMA INTERNATIONAL S.P.A.", provincia: "Rimini", ricavi: "€28.55M", ebitda: "13.16%", cagr: "129.58%", website: "www.armonutra.it", settore: "Farmaceutico", description: "Leader nella produzione farmaceutica con focus su farmaci a rilascio modificato e nutraceutici. Contract manufacturing per clienti globali. Export in 70 paesi nei 5 continenti. Oltre 200 dipendenti. Crescita del 130% annuo trainata dall'export." },
+    { name: "PHARMACARE S.R.L.", provincia: "Milano", ricavi: "€23.84M", ebitda: "11.79%", cagr: "21.46%", website: "pharmacaresrl.it", settore: "Farmaceutico", description: "Produzione farmaceutica con specializzazione in medicinali e prodotti per la salute. Forte crescita e marginalità solida. Focus su qualità e innovazione continua. Clientela nazionale consolidata." },
+    { name: "O.F.I. OFFICINA FARMACEUTICA ITALIANA S.P.A.", provincia: "Bergamo", ricavi: "€24.14M", ebitda: "1.95%", cagr: "17.04%", website: "www.ofi.it", settore: "Farmaceutico", description: "Storica officina farmaceutica italiana fondata nel 1946. Specializzata in produzione di farmaci solidi orali e preparati farmaceutici. Qualità made in Italy con certificazioni internazionali. Distribuzione nazionale ed europea." },
+    { name: "L.R. FLAVOURS & FRAGRANCES INDUSTRIES S.P.A.", provincia: "Catania", ricavi: "€15.59M", ebitda: "28.08%", cagr: "19.07%", website: "www.lrcomprof.it", settore: "Ingredienti - Aromi", description: "Leader nella produzione di aromi e fragranze per industria alimentare e cosmetica. Marginalità eccezionale del 28%. Portfolio completo di aromi naturali e sintetici conformi normative EU. Export internazionale con presenza in oltre 30 paesi." },
+    { name: "MIXER S.R.L.", provincia: "Vicenza", ricavi: "€22.88M", ebitda: "20.87%", cagr: "21.56%", website: "www.mixerit.com", settore: "Ingredienti - Compound", description: "Produzione compound e ingredienti tecnici per industria alimentare. Marginalità del 21% con crescita sostenuta. Soluzioni customizzate per clienti industriali. Tecnologie avanzate di miscelazione e formulazione." },
+    { name: "ESCHER MIXERS SRL", provincia: "Vicenza", ricavi: "€21.35M", ebitda: "19.71%", cagr: "12.55%", website: "www.eschermixers.com", settore: "Ingredienti - Compound", description: "Produzione mixer e compound per industria alimentare. Marginalità del 20% con solida base clienti. Tecnologie di miscelazione all'avanguardia. Clientela internazionale qualificata nel settore food manufacturing." },
+    { name: "PREMIX - S.R.L.", provincia: "Reggio Emilia", ricavi: "€21.41M", ebitda: "12.67%", cagr: "9.31%", website: "www.premixsrl.eu", settore: "Ingredienti - Premix", description: "Produzione premix e ingredienti per industria alimentare. Soluzioni tecniche personalizzate per panificazione e food. Focus su qualità e servizio. Certificazioni alimentari internazionali. Distribuzione europea." },
+    { name: "CASEIFICIO BOLDINI G.B. S.P.A.", provincia: "Brescia", ricavi: "€18.89M", ebitda: "12.22%", cagr: "26.51%", website: "caseificioboldini.it", settore: "Latticini", description: "Caseificio storico fondato nel 1929 con produzione formaggi tipici italiani DOP. Marginalità del 12% con crescita del 27% annuo. Tradizione e innovazione nella produzione casearia. Distribuzione nazionale GDO e canale tradizionale." },
+    { name: "TONIOLO CASEARIA SPA", provincia: "Treviso", ricavi: "€29.69M", ebitda: "11.21%", cagr: "146.87%", website: "toniolo.it", settore: "Latticini", description: "Caseificio con produzione di formaggi freschi e latticini. Crescita eccezionale del 147% annuo trainata da forte espansione commerciale. Investimenti significativi in tecnologia produttiva e automazione. Nuovi mercati esteri." },
+    { name: "CASEIFICIO ELDA SRL", provincia: "Verona", ricavi: "€27.02M", ebitda: "10.86%", cagr: "19.93%", website: "www.caseificioelda.it", settore: "Latticini", description: "Produzione formaggi freschi e stagionati di qualità. Crescita del 20% annuo con espansione della gamma prodotti. Lavorazione artigianale con metodi tradizionali. Clientela GDO nazionale e canale specializzato." },
+    { name: "GENOLA LATTE SOCIETA' PER AZIONI", provincia: "Imperia", ricavi: "€16.10M", ebitda: "1.21%", cagr: "10.95%", website: "www.lattealberti.it", settore: "Latticini", description: "Produzione latte e derivati. Brand Latte Alberti. Focus su qualità e freschezza con filiera controllata. Distribuzione capillare nel Nord Italia. Investimenti in modernizzazione impianti." },
+    { name: "COBRAPLAST SOCIETA' PER AZIONI", provincia: "Torino", ricavi: "€28.08M", ebitda: "11.76%", cagr: "17.51%", website: "www.cobraplast.com", settore: "Packaging", description: "Produzione packaging in plastica e soluzioni di imballaggio per diversi settori industriali. Crescita del 18% annuo. Ampia gamma prodotti dal packaging alimentare al farmaceutico. Investimenti in sostenibilità e materiali riciclabili." },
+    { name: "ACETAIA GIUSTI S.R.L.", provincia: "Modena", ricavi: "€20.08M", ebitda: "30.77%", cagr: "24.23%", website: "www.giusti.it", settore: "Alimentare - Condimenti Gourmet", description: "Produttore storico di aceto balsamico tradizionale di Modena dal 1605. Azienda di 16° generazione leader nel segmento premium con export globale in 90+ paesi. Marginalità eccezionale del 31%. Produzione artigianale di eccellenza italiana riconosciuta internazionalmente. Visitatori: 50.000/anno." },
+    { name: "BEANTECH S.R.L.", provincia: "Udine", ricavi: "€29.90M", ebitda: "10.28%", cagr: "23.79%", website: "www.beantech.it", settore: "Tecnologia/Software", description: "Soluzioni tecnologiche e software per industria manifatturiera. Crescita del 24% annuo trainata dalla digitalizzazione industriale. Automazione processi e digitalizzazione Industria 4.0. Clientela industriale qualificata nel Nord-Est Italia." },
+    { name: "BIOCHEMICAL SYSTEMS INTERNATIONAL S.P.A.", provincia: "Milano", ricavi: "€18.54M", ebitda: "12.92%", cagr: "11.02%", website: "biosys.it", settore: "Vegetale/Plant-Based", description: "Produzione principi attivi naturali e biologici per industria farmaceutica e nutraceutica. Tecnologie di estrazione avanzate da materie prime vegetali. Focus su ingredienti plant-based. Certificazioni bio internazionali." },
+    { name: "BIOLAB S.R.L.", provincia: "Gorizia", ricavi: "€21.71M", ebitda: "1.28%", cagr: "26.03%", website: "www.biolab-eu.com", settore: "Vegetale/Plant-Based", description: "Prodotti biologici e naturali per salute e benessere. Crescita del 26% annuo trainata dalla domanda di prodotti naturali. Focus su ingredienti di origine vegetale certificati. Certificazioni bio europee. Distribuzione specializzata." },
+
+    // Da Report_PowerPoint_6_Aziende_Novembre_2025.tsx
+    { name: "INNOVET ITALIA S.R.L.", provincia: "Padova", ricavi: "€17.11M", ebitda: "42.19%", cagr: "9.24%", website: "www.innovet.it", settore: "Pet Economy - Veterinario", description: "Azienda farmaceutica veterinaria fondata nel 1996 specializzata in integratori premium per cani e gatti. Innovazione scientifica basata su ricerca delle Aliamidi (PEA e Adelmidrol) con brevetti proprietari. Marginalità eccezionale del 42%. Parte del gruppo Swedencare (Svezia). Export in 65+ paesi. Posizione finanziaria netta positiva (€3.2M cassa)." },
+    { name: "FARMAFLOR S.R.L.", provincia: "Cuneo", ricavi: "€17.43M", ebitda: "32.38%", cagr: "52.89%", website: "www.alpiflor.com", settore: "Farmaceutico - Nutraceutico", description: "Azienda farmaceutica dal 1904 specializzata in produzione conto terzi di integratori alimentari, dispositivi medici e nutraceutici. Crescita straordinaria del 53% annuo. Tre brevetti italiani proprietari su probiotici e composizioni innovative. Marginalità eccezionale del 32%. Competenze in tutte le forme farmaceutiche (solide, liquide, stick-pack, fiale)." },
+    { name: "BIKO MECCANICA S.R.L.", provincia: "Venezia", ricavi: "€17.04M", ebitda: "27.15%", cagr: "18.42%", website: "www.biko.it", settore: "Macchine per Materiali Abrasivi", description: "Fondata nel 1984, leader mondiale nella progettazione e produzione di macchine e impianti per la conversione di materiali flessibili e abrasivi. Crescita del 18% annuo. Marginalità del 27%. Presenza internazionale. Tecnologie avanzate per industria manifatturiera. Posizione finanziaria netta positiva (€5.8M cassa). 42 dipendenti qualificati." },
+    { name: "ITECA - IMPIANTI TECNOLOGICI ALIMENTARI SPECIALI - S.P.A.", provincia: "Verona", ricavi: "€17.23M", ebitda: "23.20%", cagr: "16.11%", website: "www.itecaspa.com", settore: "Macchine Industriali - Food Tech", description: "Specializzata nella progettazione e costruzione di impianti automatici e semiautomatici per l'industria alimentare, focus su panificazione industriale. Crescita sostenuta del 16% annuo. Marginalità del 23%. Collaudi elettromeccanici e tecnologici completi. Soluzioni chiavi in mano per clienti food. Posizione finanziaria netta positiva (€3.0M cassa)." },
+    { name: "F.P.S. FOOD AND PHARMA SYSTEMS S.R.L.", provincia: "Como", ricavi: "€16.09M", ebitda: "20.24%", cagr: "12.70%", website: "www.fps-pharma.com", settore: "Macchine per Industria Farmaceutica", description: "Fondata nel 2002, leader in sistemi di contenimento e micronizzazione per API/HPAPI sterili. Oltre 1.700 sistemi operativi in 45 paesi. Centro R&D e Test MEC con camere bianche ISO8. Crescita del 13% annuo. ~100 dipendenti. Sede Como + stabilimento Fiorenzuola d'Arda (PC) + ufficio USA. Certificazione ISO9001 e cGMP. Posizione finanziaria netta positiva (€2.5M cassa)." },
+    { name: "ERCA WILMAR COSMETIC INGREDIENTS S.R.L.", provincia: "Bergamo", ricavi: "€21.09M", ebitda: "15.63%", cagr: "10.15%", website: "www.erca-wilmar.com", settore: "Ingredienti Cosmetici", description: "Joint venture (2016) tra ERCA Group e Wilmar International (leader asiatico agribusiness). Sviluppo, produzione e commercializzazione ingredienti cosmetici naturali e sintetici. Portfolio completo: emollienti, emulsionanti, solubilizzanti, condizionanti. Piattaforma industriale globale (Europa + Asia). Export mondiale con eccellente servizio. Posizione finanziaria netta positiva (€2.0M cassa)." },
+
+    // Da Report_PowerPoint_AIda_4.tsx
+    { name: "LOMBARDO S.R.L.", provincia: "Bergamo", ricavi: "€34.94M", ebitda: "19.37%", cagr: "19.02%", website: "www.cinienils.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €34.94M con margine EBITDA del 19.37%. Crescita sostenuta con CAGR del 19.02%. Buona marginalità operativa." },
+    { name: "JMG CRANES S.P.A.", provincia: "Cremona", ricavi: "€34.69M", ebitda: "20.13%", cagr: "17.72%", website: "www.jmgcranes.it", settore: "Macchine Industriali", description: "Azienda operante nel settore Macchine Industriali. Ricavi 2024: €34.69M con margine EBITDA del 20.13%. Crescita sostenuta con CAGR del 17.72%. Buona marginalità operativa." },
+    { name: "BETON EISACK S.R.L.", provincia: "Bolzano/Bozen", ricavi: "€34.42M", ebitda: "13.63%", cagr: "16.08%", website: "www.beton-eisack.it", settore: "Costruzioni/Edilizia", description: "Azienda operante nel settore Costruzioni/Edilizia. Ricavi 2024: €34.42M con margine EBITDA del 13.63%. Crescita sostenuta con CAGR del 16.08%. " },
+    { name: "COMEM S.P.A.", provincia: "Vicenza", ricavi: "€34.23M", ebitda: "21.10%", cagr: "11.40%", website: "comem.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €34.23M con margine EBITDA del 21.10%. CAGR 2021-2024 del 11.40%. Buona marginalità operativa." },
+    { name: "SENZANI BREVETTI S.P.A.", provincia: "Ravenna", ricavi: "€33.25M", ebitda: "16.06%", cagr: "17.31%", website: "www.senzani.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €33.25M con margine EBITDA del 16.06%. Crescita sostenuta con CAGR del 17.31%. " },
+    { name: "ORION S.R.L.", provincia: "Padova", ricavi: "€32.45M", ebitda: "19.24%", cagr: "16.58%", website: "www.orion-srl.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €32.45M con margine EBITDA del 19.24%. Crescita sostenuta con CAGR del 16.58%. Buona marginalità operativa." },
+    { name: "OFFICINA BOCEDI SRL", provincia: "Reggio nell'Emilia", ricavi: "€32.19M", ebitda: "23.60%", cagr: "14.01%", website: "https://www.bocedisrl.com/it/", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €32.19M con margine EBITDA del 23.60%. Crescita sostenuta con CAGR del 14.01%. Buona marginalità operativa." },
+    { name: "VEGA SRL", provincia: "Milano", ricavi: "€32.07M", ebitda: "18.33%", cagr: "15.64%", website: "vegatyres.com", settore: "Automotive", description: "Azienda operante nel settore Automotive. Ricavi 2024: €32.07M con margine EBITDA del 18.33%. Crescita sostenuta con CAGR del 15.64%. Buona marginalità operativa." },
+    { name: "GRUPPO BIOIMPIANTI S.R.L.", provincia: "Milano", ricavi: "€32.05M", ebitda: "16.53%", cagr: "19.03%", website: "bioimpianti.it", settore: "Macchine Industriali", description: "Azienda operante nel settore Macchine Industriali. Ricavi 2024: €32.05M con margine EBITDA del 16.53%. Crescita sostenuta con CAGR del 19.03%. " },
+    { name: "FPZ S.P.A.", provincia: "Monza e della Brianza", ricavi: "€31.67M", ebitda: "12.98%", cagr: "11.73%", website: "www.fpz.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €31.67M con margine EBITDA del 12.98%. CAGR 2021-2024 del 11.73%. " },
+    { name: "DIAPATH S.P.A.", provincia: "Bergamo", ricavi: "€31.62M", ebitda: "18.75%", cagr: "12.88%", website: "www.diapath.it", settore: "Farmaceutico/Medical", description: "Azienda operante nel settore Farmaceutico/Medical. Ricavi 2024: €31.62M con margine EBITDA del 18.75%. Crescita sostenuta con CAGR del 12.88%. Buona marginalità operativa." },
+    { name: "VALLE SPLUGA S.P.A. SOCIETA' AGRICOLA O PIU' BREVEMENTE VALLE SPLUGA S.P.A.", provincia: "Sondrio", ricavi: "€31.62M", ebitda: "14.56%", cagr: "11.44%", website: "vallespluga.it", settore: "Alimentare", description: "Azienda operante nel settore Alimentare. Ricavi 2024: €31.62M con margine EBITDA del 14.56%. CAGR 2021-2024 del 11.44%. " },
+    { name: "ACM S.P.A.", provincia: "Cremona", ricavi: "€31.60M", ebitda: "24.84%", cagr: "12.68%", website: "acm-plastic.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €31.60M con margine EBITDA del 24.84%. Crescita sostenuta con CAGR del 12.68%. Buona marginalità operativa." },
+    { name: "VERNAZZA AUTOGRU - SOCIETA' A RESPONSABILITA' LIMITATA SIGLABILE VERNAZZA AUTOGRU - S.R.L.", provincia: "Genova", ricavi: "€31.56M", ebitda: "27.07%", cagr: "12.26%", website: "vernazzautogru.com", settore: "Macchine Industriali", description: "Azienda operante nel settore Macchine Industriali. Ricavi 2024: €31.56M con margine EBITDA del 27.07%. Crescita sostenuta con CAGR del 12.26%. Marginalità eccellente." },
+    { name: "N.P. INDUSTRIES S.P.A.", provincia: "Udine", ricavi: "€31.45M", ebitda: "15.77%", cagr: "11.24%", website: "disugual.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €31.45M con margine EBITDA del 15.77%. CAGR 2021-2024 del 11.24%. " },
+    { name: "ECO.RA.V. S.P.A.", provincia: "Belluno", ricavi: "€31.27M", ebitda: "19.76%", cagr: "11.84%", website: "ecorav.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €31.27M con margine EBITDA del 19.76%. CAGR 2021-2024 del 11.84%. Buona marginalità operativa." },
+    { name: "ELISAM SRL", provincia: "Forlì-Cesena", ricavi: "€31.18M", ebitda: "22.11%", cagr: "12.55%", website: "www.elisamgrading.com", settore: "Packaging", description: "Azienda operante nel settore Packaging. Ricavi 2024: €31.18M con margine EBITDA del 22.11%. Crescita sostenuta con CAGR del 12.55%. Buona marginalità operativa." },
+    { name: "INFONET SOLUTIONS S.R.L.", provincia: "Padova", ricavi: "€30.99M", ebitda: "12.20%", cagr: "20.23%", website: "infonetsolutions.it", settore: "Tecnologia/Software", description: "Azienda operante nel settore Tecnologia/Software. Ricavi 2024: €30.99M con margine EBITDA del 12.20%. Crescita significativa con CAGR 2021-2024 del 20.23%. " },
+    { name: "TECHNIPES S.R.L.", provincia: "Rimini", ricavi: "€30.78M", ebitda: "22.88%", cagr: "11.92%", website: "technipes.com", settore: "Tecnologia/Software", description: "Azienda operante nel settore Tecnologia/Software. Ricavi 2024: €30.78M con margine EBITDA del 22.88%. CAGR 2021-2024 del 11.92%. Buona marginalità operativa." },
+    { name: "IDRO-ELETTRICA - S.P.A.", provincia: "Modena", ricavi: "€30.72M", ebitda: "20.77%", cagr: "17.31%", website: "www.idro-elettrica.it", settore: "Energia", description: "Azienda operante nel settore Energia. Ricavi 2024: €30.72M con margine EBITDA del 20.77%. Crescita sostenuta con CAGR del 17.31%. Buona marginalità operativa." },
+    { name: "VALTECNE S.P.A.", provincia: "Sondrio", ricavi: "€30.40M", ebitda: "19.69%", cagr: "18.71%", website: "valtecne.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €30.40M con margine EBITDA del 19.69%. Crescita sostenuta con CAGR del 18.71%. Buona marginalità operativa." },
+    { name: "NIAGARA S.R.L.", provincia: "Ferrara", ricavi: "€30.24M", ebitda: "14.05%", cagr: "13.96%", website: "www.niagarapoggio.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €30.24M con margine EBITDA del 14.05%. Crescita sostenuta con CAGR del 13.96%. " },
+    { name: "BELOTTI S.P.A.", provincia: "Bergamo", ricavi: "€30.16M", ebitda: "24.67%", cagr: "16.39%", website: "www.belotti.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €30.16M con margine EBITDA del 24.67%. Crescita sostenuta con CAGR del 16.39%. Buona marginalità operativa." },
+    { name: "GASTRONOMIA PICCININI - SAPORI DELLA COLLINA S.R.L.", provincia: "Reggio nell'Emilia", ricavi: "€29.92M", ebitda: "13.93%", cagr: "16.12%", website: "http://www.gastronomiapiccinini.it", settore: "Alimentare", description: "Azienda operante nel settore Alimentare. Ricavi 2024: €29.92M con margine EBITDA del 13.93%. Crescita sostenuta con CAGR del 16.12%. " },
+    { name: "CMC MARINE S.R.L.", provincia: "Milano", ricavi: "€29.88M", ebitda: "27.63%", cagr: "15.04%", website: "www.cmcmarine.com", settore: "Nautica", description: "Azienda operante nel settore Nautica. Ricavi 2024: €29.88M con margine EBITDA del 27.63%. Crescita sostenuta con CAGR del 15.04%. Marginalità eccellente." },
+    { name: "TECNOEKA S.R.L.", provincia: "Padova", ricavi: "€29.68M", ebitda: "16.25%", cagr: "15.59%", website: "www.tecnoeka.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €29.68M con margine EBITDA del 16.25%. Crescita sostenuta con CAGR del 15.59%. " },
+    { name: "MANIVA S.P.A.", provincia: "Brescia", ricavi: "€29.25M", ebitda: "19.36%", cagr: "18.25%", website: "www.manivaspa.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €29.25M con margine EBITDA del 19.36%. Crescita sostenuta con CAGR del 18.25%. Buona marginalità operativa." },
+    { name: "PROPPY-GEL S.R.L.", provincia: "Cuneo", ricavi: "€28.98M", ebitda: "23.93%", cagr: "17.99%", website: "rogelfrut.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €28.98M con margine EBITDA del 23.93%. Crescita sostenuta con CAGR del 17.99%. Buona marginalità operativa." },
+    { name: "GUERRA SOCIETA' PER AZIONI", provincia: "Roma", ricavi: "€28.59M", ebitda: "16.29%", cagr: "18.24%", website: "http://www.guerra.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €28.59M con margine EBITDA del 16.29%. Crescita sostenuta con CAGR del 18.24%. " },
+    { name: "TITANIUM INTERNATIONAL GROUP - S.R.L.", provincia: "Bologna", ricavi: "€28.38M", ebitda: "15.03%", cagr: "19.98%", website: "www.titanium.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €28.38M con margine EBITDA del 15.03%. Crescita sostenuta con CAGR del 19.98%. " },
+    { name: "KALMAR ITALIA S.R.L.", provincia: "Genova", ricavi: "€28.22M", ebitda: "12.27%", cagr: "14.87%", website: "www.kalmarglobal.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €28.22M con margine EBITDA del 12.27%. Crescita sostenuta con CAGR del 14.87%. " },
+    { name: "LUCIANO SORLINI S.P.A.", provincia: "Brescia", ricavi: "€27.62M", ebitda: "13.92%", cagr: "14.36%", website: "sorlini.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €27.62M con margine EBITDA del 13.92%. Crescita sostenuta con CAGR del 14.36%. " },
+    { name: "CARBOPRESS SOCIETA' PER AZIONI", provincia: "Milano", ricavi: "€26.17M", ebitda: "24.12%", cagr: "20.19%", website: "www.carbopress.com", settore: "Componenti Industriali", description: "Azienda operante nel settore Componenti Industriali. Ricavi 2024: €26.17M con margine EBITDA del 24.12%. Crescita significativa con CAGR 2021-2024 del 20.19%. Buona marginalità operativa." },
+    { name: "A.T.I.B. S.R.L.", provincia: "Brescia", ricavi: "€25.05M", ebitda: "27.40%", cagr: "19.14%", website: "www.atib.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €25.05M con margine EBITDA del 27.40%. Crescita sostenuta con CAGR del 19.14%. Marginalità eccellente." },
+    { name: "S.G. S.R.L.", provincia: "Brescia", ricavi: "€24.73M", ebitda: "12.30%", cagr: "18.11%", website: "www.sg-srl.org", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €24.73M con margine EBITDA del 12.30%. Crescita sostenuta con CAGR del 18.11%. " },
+    { name: "FURIA SEED S.R.L.", provincia: "Parma", ricavi: "€24.49M", ebitda: "18.39%", cagr: "11.02%", website: "www.furiaseed.com", settore: "Alimentare", description: "Azienda operante nel settore Alimentare. Ricavi 2024: €24.49M con margine EBITDA del 18.39%. CAGR 2021-2024 del 11.02%. Buona marginalità operativa." },
+    { name: "ALIMEC S.R.L.", provincia: "Vicenza", ricavi: "€24.17M", ebitda: "21.41%", cagr: "12.96%", website: "alimec.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €24.17M con margine EBITDA del 21.41%. Crescita sostenuta con CAGR del 12.96%. Buona marginalità operativa." },
+    { name: "SALVATORE ROBUSCHI & C. S.R.L.", provincia: "Parma", ricavi: "€24.11M", ebitda: "21.80%", cagr: "14.05%", website: "www.salvatorerobuschi.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €24.11M con margine EBITDA del 21.80%. Crescita sostenuta con CAGR del 14.05%. Buona marginalità operativa." },
+    { name: "S.E.I.M. - SOCIETA ESERCIZIO INDUSTRIE MECCANICHE S.R.L.", provincia: "Milano", ricavi: "€24.00M", ebitda: "12.58%", cagr: "12.29%", website: "seim.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €24.00M con margine EBITDA del 12.58%. Crescita sostenuta con CAGR del 12.29%. " },
+    { name: "ITALCARRELLI S.P.A.", provincia: "Vicenza", ricavi: "€23.95M", ebitda: "23.13%", cagr: "11.89%", website: "italcarrelli.eu", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €23.95M con margine EBITDA del 23.13%. CAGR 2021-2024 del 11.89%. Buona marginalità operativa." },
+    { name: "TRACE ONE S.R.L.", provincia: "Milano", ricavi: "€23.31M", ebitda: "16.13%", cagr: "17.09%", website: "selerant.com", settore: "Tecnologia/Software", description: "Azienda operante nel settore Tecnologia/Software. Ricavi 2024: €23.31M con margine EBITDA del 16.13%. Crescita sostenuta con CAGR del 17.09%. " },
+    { name: "DIACO BIOFARMACEUTICI S.R.L.", provincia: "Trieste", ricavi: "€23.31M", ebitda: "12.64%", cagr: "16.40%", website: "www.diaco.it", settore: "Farmaceutico/Medical", description: "Azienda operante nel settore Farmaceutico/Medical. Ricavi 2024: €23.31M con margine EBITDA del 12.64%. Crescita sostenuta con CAGR del 16.40%. " },
+    { name: "FIRECO S.R.L.", provincia: "Brescia", ricavi: "€22.94M", ebitda: "13.69%", cagr: "13.02%", website: "www.fireco.eu", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €22.94M con margine EBITDA del 13.69%. Crescita sostenuta con CAGR del 13.02%. " },
+    { name: "H2O S.R.L.", provincia: "Milano", ricavi: "€22.35M", ebitda: "18.70%", cagr: "15.80%", website: "www.issco.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €22.35M con margine EBITDA del 18.70%. Crescita sostenuta con CAGR del 15.80%. Buona marginalità operativa." },
+    { name: "SCANRECOFABER S.R.L.", provincia: "Reggio nell'Emilia", ricavi: "€21.43M", ebitda: "14.73%", cagr: "12.00%", website: "fabercom.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €21.43M con margine EBITDA del 14.73%. Crescita sostenuta con CAGR del 12.00%. " },
+    { name: "AERZEN ITALIA S.R.L.", provincia: "Milano", ricavi: "€21.37M", ebitda: "19.39%", cagr: "19.55%", website: "www.aerzen.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €21.37M con margine EBITDA del 19.39%. Crescita sostenuta con CAGR del 19.55%. Buona marginalità operativa." },
+    { name: "ECOLOGICA PIEMONTESE S.R.L.", provincia: "Torino", ricavi: "€21.22M", ebitda: "15.99%", cagr: "17.03%", website: "www.ecologicapiemontese.com", settore: "Servizi Ambientali", description: "Azienda operante nel settore Servizi Ambientali. Ricavi 2024: €21.22M con margine EBITDA del 15.99%. Crescita sostenuta con CAGR del 17.03%. " },
+    { name: "EVERTON S.R.L.", provincia: "Verona", ricavi: "€20.88M", ebitda: "21.71%", cagr: "15.41%", website: "everton.it", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €20.88M con margine EBITDA del 21.71%. Crescita sostenuta con CAGR del 15.41%. Buona marginalità operativa." },
+    { name: "TESSILBIELLA S.R.L.", provincia: "Biella", ricavi: "€20.64M", ebitda: "21.54%", cagr: "17.52%", website: "www.tessilbiella.it", settore: "Tessile", description: "Azienda operante nel settore Tessile. Ricavi 2024: €20.64M con margine EBITDA del 21.54%. Crescita sostenuta con CAGR del 17.52%. Buona marginalità operativa." },
+    { name: "OMAS S.R.L.", provincia: "Treviso", ricavi: "€20.37M", ebitda: "17.80%", cagr: "13.33%", website: "www.omas-srl.net", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €20.37M con margine EBITDA del 17.80%. Crescita sostenuta con CAGR del 13.33%. " },
+    { name: "TECNIDOORS SPA", provincia: "Novara", ricavi: "€20.21M", ebitda: "21.91%", cagr: "11.81%", website: "http://www.fermator.com/", settore: "Porte/Serramenti", description: "Azienda operante nel settore Porte/Serramenti. Ricavi 2024: €20.21M con margine EBITDA del 21.91%. CAGR 2021-2024 del 11.81%. Buona marginalità operativa." },
+    { name: "ELLENA S.P.A.", provincia: "Torino", ricavi: "€20.18M", ebitda: "14.38%", cagr: "14.91%", website: "http://www.ellenaspa.com", settore: "Industriale", description: "Azienda operante nel settore Industriale. Ricavi 2024: €20.18M con margine EBITDA del 14.38%. Crescita sostenuta con CAGR del 14.91%. " },
+
+    // Da Report_PowerPoint_SIL_MAC_Security_Trust.tsx
+    { name: "SIL.MAC. S.R.L.", provincia: "Bologna", ricavi: "€19.76M", ebitda: "16.82%", cagr: "11.92%", website: "www.silmac.it", settore: "Macchine Automatiche - Packaging", description: "Partner strategico specializzato nella costruzione di macchine e linee automatiche conto terzi per l'industria dalla prototipazione alla produzione di serie. Fondata nel 1971, opera con tre poli produttivi in provincia di Bologna per un totale di 10.000 mq dedicati al montaggio. Settori: Food, Beverage, Packaging, Personal Care, Farmaceutico. Sistema SAP avanzato, certificazione ISO 9001-2015, modello organizzativo 231. Posizione finanziaria netta positiva (€421k cassa). EBITDA in forte crescita: da 6.64% (2021) a 16.82% (2024)." },
+    { name: "SECURITY TRUST.IT S.R.L.", provincia: "Brescia", ricavi: "€23.24M", ebitda: "19.90%", cagr: "24.48%", website: "www.securitytrust.it", settore: "Cybersecurity - System Integrator", description: "Leader nella protezione di persone, asset e dati. System Integrator nell'ambito dei sistemi di sicurezza fisica, informatica e industriale con oltre 25 anni di esperienza. 9 sedi in Italia, 90 dipendenti, presenza in 4 paesi esteri. Soluzioni integrate: videosorveglianza, controllo accessi, antintrusione, antincendio, supervisione, cybersecurity e Security Operation Center. Certificazioni ISO. Crescita eccezionale del 24.48% annuo. Marginalità in costante miglioramento: da 12.41% (2021) a 19.90% (2024). Posizione finanziaria netta positiva (€3.11M cassa)." }
+  ];
+
+  // Stati per la gestione delle aziende e filtri
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [deletedCompanies, setDeletedCompanies] = useState([]);
+  const [showDeleted, setShowDeleted] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState('');
+
+  // Funzione per ottenere la regione dalla provincia
+  const getRegion = (provincia) => {
+    return provinceToRegion[provincia] || "Altra Regione";
+  };
+
+  // Aggiungi regione a tutte le aziende
+  const companiesWithRegion = useMemo(() => {
+    return allCompaniesData.map(company => ({
+      ...company,
+      regione: getRegion(company.provincia)
+    }));
+  }, []);
+
+  // Ordina le aziende per regione (Emilia-Romagna prima) e poi per provincia
+  const sortedCompanies = useMemo(() => {
+    const regionOrder = ['Emilia-Romagna'];
+    
+    return [...companiesWithRegion].sort((a, b) => {
+      // Prima ordina per regione
+      const aRegionIndex = regionOrder.indexOf(a.regione);
+      const bRegionIndex = regionOrder.indexOf(b.regione);
+      
+      if (aRegionIndex !== -1 && bRegionIndex === -1) return -1;
+      if (aRegionIndex === -1 && bRegionIndex !== -1) return 1;
+      if (aRegionIndex !== -1 && bRegionIndex !== -1) {
+        if (aRegionIndex !== bRegionIndex) return aRegionIndex - bRegionIndex;
+      }
+      
+      // Se stessa regione o entrambe non in regionOrder, ordina alfabeticamente per regione
+      const regionCompare = a.regione.localeCompare(b.regione);
+      if (regionCompare !== 0) return regionCompare;
+      
+      // Se stessa regione, ordina per provincia
+      return a.provincia.localeCompare(b.provincia);
+    });
+  }, [companiesWithRegion]);
+
+  // Filtra le aziende in base alla regione selezionata e aziende eliminate
+  const filteredCompanies = useMemo(() => {
+    let companies = sortedCompanies.filter(c => !deletedCompanies.includes(c.name));
+    
+    if (selectedRegion) {
+      companies = companies.filter(c => c.regione === selectedRegion);
+    }
+    
+    return companies;
+  }, [sortedCompanies, deletedCompanies, selectedRegion]);
+
+  // Ottieni lista unica di regioni per il filtro
+  const uniqueRegions = useMemo(() => {
+    const regions = [...new Set(sortedCompanies.map(c => c.regione))];
+    return regions.sort((a, b) => {
+      if (a === 'Emilia-Romagna') return -1;
+      if (b === 'Emilia-Romagna') return 1;
+      return a.localeCompare(b);
+    });
+  }, [sortedCompanies]);
+
+  const totalSlides = Math.ceil(filteredCompanies.length / 2);
+
+  const nextSlide = () => setCurrentSlide(Math.min(currentSlide + 1, totalSlides - 1));
+  const prevSlide = () => setCurrentSlide(Math.max(currentSlide - 1, 0));
+  const goToSlide = (idx) => setCurrentSlide(idx);
+
+  const getCurrentCompanies = () => {
+    const startIdx = currentSlide * 2;
+    return filteredCompanies.slice(startIdx, startIdx + 2);
+  };
+
+  const handlePrint = () => window.print();
+
+  const deleteCompany = (name) => {
+    setDeletedCompanies([...deletedCompanies, name]);
+    // Aggiusta la slide corrente se necessario
+    if (currentSlide >= totalSlides - 1 && currentSlide > 0) {
+      setCurrentSlide(currentSlide - 1);
+    }
+  };
+
+  const restoreCompany = (name) => {
+    setDeletedCompanies(deletedCompanies.filter(n => n !== name));
+  };
+
+  const getWebsiteUrl = (website) => {
+    // Pulisci il website e crea URL per Google Search
+    let cleanWebsite = website.replace(/^(https?:\/\/)?(www\.)?/, '');
+    return `https://www.google.com/search?q=${encodeURIComponent(cleanWebsite)}`;
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex flex-col">
+      <div className="bg-white shadow-xl p-4 print:hidden">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={() => setCurrentSlide(0)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <Home size={20} className="text-blue-900" />
+            </button>
+            <div>
+              <h1 className="text-2xl font-bold text-blue-900">GDTRE Private Equity</h1>
+              <p className="text-sm text-gray-600">Report Completo • {filteredCompanies.length} Aziende Target</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <Filter size={18} className="text-blue-600" />
+              <select 
+                value={selectedRegion}
+                onChange={(e) => {
+                  setSelectedRegion(e.target.value);
+                  setCurrentSlide(0);
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Tutte le Regioni</option>
+                {uniqueRegions.map(region => (
+                  <option key={region} value={region}>{region}</option>
+                ))}
+              </select>
+            </div>
+            <button 
+              onClick={() => setShowDeleted(!showDeleted)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              <RotateCcw size={18} />
+              Eliminate ({deletedCompanies.length})
+            </button>
+            <button onClick={handlePrint} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+              <Printer size={18} />
+              Stampa/PDF
+            </button>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">12 Nov 2025</p>
+              <p className="text-xs text-gray-500 font-semibold">Slide {currentSlide + 1}/{totalSlides}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {showDeleted && deletedCompanies.length > 0 && (
+        <div className="bg-yellow-50 border-b border-yellow-200 p-4 print:hidden">
+          <div className="max-w-7xl mx-auto">
+            <h3 className="text-sm font-semibold text-yellow-900 mb-2">Aziende Eliminate ({deletedCompanies.length}):</h3>
+            <div className="flex flex-wrap gap-2">
+              {deletedCompanies.map(name => (
+                <button
+                  key={name}
+                  onClick={() => restoreCompany(name)}
+                  className="flex items-center gap-2 px-3 py-1 bg-white border border-yellow-300 rounded-lg text-sm hover:bg-yellow-100 transition-colors"
+                >
+                  <RotateCcw size={14} />
+                  {name}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 flex items-center justify-center p-8 print:p-0">
+        <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl aspect-[16/9] p-12 relative print:shadow-none">
+          <div className="h-full flex flex-col gap-6">
+            {getCurrentCompanies().map((c, idx) => (
+              <div key={idx} className="flex-1 border-l-4 border-blue-600 pl-6 relative group">
+                <button
+                  onClick={() => deleteCompany(c.name)}
+                  className="absolute -right-2 -top-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 print:hidden"
+                  title="Elimina azienda"
+                >
+                  <Trash2 size={16} />
+                </button>
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">{c.name}</h2>
+                <div className="flex items-center gap-4 text-sm mb-3">
+                  <span className="text-blue-600">📍 {c.provincia} ({c.regione})</span>
+                  <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full font-semibold text-xs">{c.settore}</span>
+                </div>
+                <div className="grid grid-cols-4 gap-3 mb-3">
+                  <div className="bg-blue-50 rounded p-2">
+                    <div className="text-xs text-gray-600 mb-1">Ricavi</div>
+                    <div className="text-lg font-bold text-blue-900">{c.ricavi}</div>
+                  </div>
+                  <div className="bg-green-50 rounded p-2">
+                    <div className="text-xs text-gray-600 mb-1">EBITDA</div>
+                    <div className="text-lg font-bold text-green-700">{c.ebitda}</div>
+                  </div>
+                  <div className="bg-purple-50 rounded p-2">
+                    <div className="text-xs text-gray-600 mb-1">CAGR</div>
+                    <div className="text-lg font-bold text-purple-700">{c.cagr}</div>
+                  </div>
+                  <div className="bg-gray-50 rounded p-2">
+                    <div className="text-xs text-gray-600 mb-1">Website</div>
+                    <a 
+                      href={getWebsiteUrl(c.website)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 underline truncate block"
+                    >
+                      {c.website}
+                    </a>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-700 leading-relaxed">{c.description}</p>
+              </div>
+            ))}
+          </div>
+          <div className="absolute bottom-4 left-12 right-12 flex justify-between text-xs text-gray-400 border-t pt-2">
+            <span>Report Completo • Ricavi €15-35M • EBITDA &gt;10% • CAGR &gt;8%</span>
+            <span>© GDTRE 2025</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white border-t p-4 print:hidden">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between mb-3">
+            <button 
+              onClick={prevSlide} 
+              disabled={currentSlide === 0} 
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold ${
+                currentSlide === 0 
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              <ChevronLeft size={20} />Precedente
+            </button>
+            <div className="flex gap-2">
+              {Array.from({ length: Math.min(15, totalSlides) }).map((_, idx) => (
+                <button 
+                  key={idx} 
+                  onClick={() => goToSlide(idx)} 
+                  className={`transition-all ${
+                    currentSlide === idx 
+                      ? 'w-8 h-3 bg-blue-600 rounded-full' 
+                      : 'w-3 h-3 bg-gray-300 rounded-full hover:bg-gray-400'
+                  }`} 
+                />
+              ))}
+            </div>
+            <button 
+              onClick={nextSlide} 
+              disabled={currentSlide === totalSlides - 1} 
+              className={`flex items-center gap-2 px-6 py-3 rounded-lg font-semibold ${
+                currentSlide === totalSlides - 1 
+                  ? 'bg-gray-200 text-gray-400 cursor-not-allowed' 
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+            >
+              Successivo<ChevronRight size={20} />
+            </button>
+          </div>
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              📊 Aziende {currentSlide * 2 + 1}-{Math.min((currentSlide + 1) * 2, filteredCompanies.length)} di {filteredCompanies.length} visibili 
+              {selectedRegion && <span className="text-blue-600 font-semibold"> • Filtrato: {selectedRegion}</span>}
+              {deletedCompanies.length > 0 && <span className="text-red-600"> • {deletedCompanies.length} eliminate</span>}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-3 text-white text-center print:hidden">
+        <p className="text-sm font-semibold">💡 Clicca sui siti web per cercarli su Google • Elimina aziende con il pulsante 🗑️ • Ripristina dalla barra gialla</p>
+      </div>
+    </div>
+  );
+}
+
+        
+        ReactDOM.render(<ReportCompletoGDTRE />, document.getElementById('root'));
+    </script>
+</body>
+</html>
